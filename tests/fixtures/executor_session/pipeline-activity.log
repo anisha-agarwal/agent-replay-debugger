@@ -1,0 +1,10 @@
+[14:00:05] code  read: /src/api/router.ts
+[14:00:10] code  read: /src/api/handlers.ts
+[14:15:00] code  write: /src/api/router.ts
+[14:20:00] code  write: /src/api/handlers.ts
+[14:30:00] code  bash: npm run build
+[14:35:02] lint  bash: npm run lint
+[14:35:05] test  bash: npm run test
+[14:35:45] test  error: AssertionError: expected 200 but got 404
+[14:35:46] test  bash: npm run test
+[14:36:30] test  error: AssertionError: expected 200 but got 404

@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Replay Debugger</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --surface3: #222233;
+    --border: rgba(255,255,255,0.06);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --accent: #818cf8;
+    --accent2: #a78bfa;
+    --green: #4ade80;
+    --green-bg: rgba(74,222,128,0.1);
+    --red: #f87171;
+    --red-bg: rgba(248,113,113,0.1);
+    --amber: #fbbf24;
+    --amber-bg: rgba(251,191,36,0.1);
+    --blue: #60a5fa;
+    --blue-bg: rgba(96,165,250,0.1);
+    --purple: #c084fc;
+    --purple-bg: rgba(192,132,252,0.1);
+    --mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .header-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .header-session {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--text2);
+    flex: 1;
+  }
+  .badge {
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-framework {
+    background: var(--purple-bg);
+    color: var(--purple);
+    border: 1px solid rgba(192,132,252,0.2);
+  }
+  .badge-completed { background: var(--green-bg); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+  .badge-failed { background: var(--red-bg); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+  .badge-running { background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+  .badge-killed { background: var(--amber-bg); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
+
+  /* ── Main container ── */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 32px;
+  }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .stat-value.green { color: var(--green); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.amber { color: var(--amber); }
+  .stat-label {
+    font-size: 12px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+  }
+
+  /* ── Section headers ── */
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text2);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  /* ── DAG visualization ── */
+  .dag-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+  }
+  .dag-tiers {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: max-content;
+  }
+  .dag-tier {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+  .dag-node {
+    background: var(--surface2);
+    border: 2px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    min-width: 100px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .dag-node:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+  .dag-node.active { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .dag-node.passed { border-color: var(--green); background: var(--green-bg); color: var(--green); }
+  .dag-node.failed { border-color: var(--red); background: var(--red-bg); color: var(--red); }
+  .dag-node.running { border-color: var(--blue); background: var(--blue-bg); color: var(--blue); }
+  .dag-node.skipped { border-color: var(--text3); color: var(--text3); }
+  .dag-node.pending { color: var(--text3); }
+  .dag-node-name { display: block; }
+  .dag-node-meta { display: block; font-size: 10px; font-weight: 400; opacity: 0.7; margin-top: 2px; }
+  .dag-arrow {
+    color: var(--text3);
+    font-size: 20px;
+    padding: 0 4px;
+  }
+
+  /* ── Timeline bar ── */
+  .timeline-bar-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+  }
+  .timeline-bar {
+    display: flex;
+    height: 32px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--surface2);
+  }
+  .timeline-segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.8);
+    min-width: 2px;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    position: relative;
+  }
+  .timeline-segment:hover { opacity: 0.8; }
+  .timeline-segment.passed { background: rgba(74,222,128,0.4); }
+  .timeline-segment.failed { background: rgba(248,113,113,0.4); }
+  .timeline-segment.running { background: rgba(96,165,250,0.4); }
+  .timeline-segment.skipped { background: rgba(100,116,139,0.3); }
+  .timeline-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
+
+  /* ── Filter bar ── */
+  .filter-bar {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .filter-bar label {
+    font-size: 13px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+  }
+  .filter-bar input[type="checkbox"] {
+    accent-color: var(--accent);
+  }
+  .filter-bar select {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .filter-bar input[type="text"] {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    width: 200px;
+  }
+  .jump-btn {
+    background: var(--red-bg);
+    color: var(--red);
+    border: 1px solid rgba(248,113,113,0.2);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-left: auto;
+  }
+  .jump-btn:hover { background: rgba(248,113,113,0.2); }
+
+  /* ── Event timeline ── */
+  .event-timeline {
+    position: relative;
+    padding-left: 120px;
+  }
+  .event-timeline::before {
+    content: '';
+    position: absolute;
+    left: 115px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border2);
+  }
+  .event-item {
+    position: relative;
+    margin-bottom: 4px;
+  }
+  .event-gap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding: 2px 0;
+    padding-left: 24px;
+  }
+  .event-gap-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    background: var(--bg);
+    padding: 0 8px;
+    position: relative;
+    z-index: 1;
+  }
+  .event-gap.bottleneck .event-gap-label {
+    color: var(--amber);
+    font-weight: 600;
+  }
+  .event-gap-bar {
+    height: 3px;
+    background: var(--border);
+    flex: 1;
+    margin-left: 8px;
+    border-radius: 2px;
+  }
+  .event-gap.bottleneck .event-gap-bar {
+    background: rgba(251,191,36,0.3);
+    height: 5px;
+  }
+  .event-time {
+    position: absolute;
+    left: -120px;
+    width: 110px;
+    text-align: right;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text3);
+    top: 12px;
+  }
+  .event-dot {
+    position: absolute;
+    left: -8px;
+    top: 14px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--bg);
+    z-index: 2;
+  }
+  .event-dot.lifecycle { background: var(--blue); }
+  .event-dot.step { background: var(--green); }
+  .event-dot.phase { background: var(--purple); }
+  .event-dot.error { background: var(--red); }
+  .event-dot.verdict { background: var(--amber); }
+  .event-dot.reasoning { background: var(--accent); }
+  .event-dot.tool { background: var(--text2); }
+  .reasoning-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+    margin-top: 6px;
+    font-style: italic;
+  }
+  /* ── Reasoning group (collapsed consecutive reasoning events) ── */
+  .reasoning-group {
+    position: relative;
+    margin-bottom: 4px;
+  }
+  .reasoning-group-header {
+    background: var(--surface);
+    border: 1px solid rgba(129,140,248,0.15);
+    border-radius: 8px;
+    padding: 10px 16px;
+    margin-left: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: border-color 0.2s;
+  }
+  .reasoning-group-header:hover { border-color: var(--accent); }
+  .reasoning-group-header.expanded { border-color: var(--accent); }
+  .reasoning-group-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: rgba(129,140,248,0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .reasoning-group-preview {
+    font-size: 12px;
+    color: var(--text2);
+    font-style: italic;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .reasoning-group-toggle {
+    font-size: 11px;
+    color: var(--text3);
+  }
+  .reasoning-group-items {
+    display: none;
+    padding-left: 16px;
+  }
+  .reasoning-group-header.expanded + .reasoning-group-items { display: block; }
+  .event-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-left: 16px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .event-card:hover { border-color: var(--border2); }
+  .event-card.expanded { border-color: var(--accent); }
+  .event-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .event-type-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .event-type-badge.lifecycle { background: var(--blue-bg); color: var(--blue); }
+  .event-type-badge.step { background: var(--green-bg); color: var(--green); }
+  .event-type-badge.phase { background: var(--purple-bg); color: var(--purple); }
+  .event-type-badge.error { background: var(--red-bg); color: var(--red); }
+  .event-type-badge.verdict { background: var(--amber-bg); color: var(--amber); }
+  .event-type-badge.reasoning { background: rgba(129,140,248,0.15); color: var(--accent); }
+  .event-type-badge.tool { background: rgba(148,163,184,0.15); color: var(--text2); }
+  .event-name {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .event-span {
+    font-size: 12px;
+    color: var(--text3);
+    margin-left: auto;
+  }
+  .event-detail {
+    display: none;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .event-card.expanded .event-detail { display: block; }
+  .event-detail pre {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text2);
+    background: var(--surface2);
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .event-detail h4 {
+    font-size: 12px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    margin-top: 12px;
+  }
+  .event-detail h4:first-child { margin-top: 0; }
+  .tool-call-list {
+    list-style: none;
+  }
+  .tool-call-item {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text2);
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .tool-call-kind {
+    display: inline-block;
+    width: 80px;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* ── Artifacts panel ── */
+  .artifacts-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-top: 24px;
+  }
+  .artifact-item {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .artifact-item:last-child { border-bottom: none; }
+  .artifact-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .artifact-name {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .artifact-type {
+    font-size: 11px;
+    color: var(--text3);
+    background: var(--surface2);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .artifact-span {
+    font-size: 12px;
+    color: var(--text3);
+    margin-left: auto;
+  }
+  .artifact-content {
+    display: none;
+    margin-top: 10px;
+  }
+  .artifact-item.expanded .artifact-content { display: block; }
+  .artifact-content pre {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text2);
+    background: var(--surface2);
+    padding: 12px;
+    border-radius: 6px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 500px;
+    overflow-y: auto;
+  }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text3);
+  }
+
+  /* ── Keyboard hint ── */
+  .kbd-hint {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: var(--text3);
+  }
+  kbd {
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+<script>
+const TRACE = __TRACE_DATA_PLACEHOLDER__;
+
+function formatDuration(ms) {
+  if (ms == null) return '-';
+  if (ms < 1000) return ms + 'ms';
+  const s = ms / 1000;
+  if (s < 60) return s.toFixed(1) + 's';
+  const m = Math.floor(s / 60);
+  const rs = Math.floor(s % 60);
+  if (m < 60) return m + 'm ' + rs + 's';
+  const h = Math.floor(m / 60);
+  return h + 'h ' + (m % 60) + 'm';
+}
+
+function formatTime(ts) {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    return d.toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'});
+  } catch { return ts.slice(11, 19); }
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function statusBadgeClass(status) {
+  const map = {completed: 'badge-completed', passed: 'badge-completed', failed: 'badge-failed',
+                running: 'badge-running', killed: 'badge-killed'};
+  return map[status] || 'badge-framework';
+}
+
+function renderHeader() {
+  const h = document.getElementById('header');
+  h.innerHTML = `
+    <div class="header-title">Agent Replay Debugger</div>
+    <div class="header-session">${escapeHtml(TRACE.title || TRACE.trace_id)}</div>
+    <span class="badge badge-framework">${escapeHtml(TRACE.framework)}</span>
+    <span class="badge badge-framework">${escapeHtml(TRACE.session_type)}</span>
+    <span class="badge ${statusBadgeClass(TRACE.status)}">${escapeHtml(TRACE.status)}</span>
+  `;
+}
+
+function renderStats() {
+  const s = TRACE.summary || {};
+  const cards = [
+    {value: formatDuration(s.total_duration_ms), label: 'Duration', cls: ''},
+    {value: s.passed || 0, label: 'Passed', cls: 'green'},
+    {value: s.failed || 0, label: 'Failed', cls: s.failed ? 'red' : ''},
+    {value: s.retries || 0, label: 'Retries', cls: s.retries ? 'amber' : ''},
+    {value: s.span_count || 0, label: 'Spans', cls: ''},
+    {value: (s.files_read || 0) + (s.files_written || 0), label: 'Files Touched', cls: ''},
+    {value: s.commands_run || 0, label: 'Commands', cls: ''},
+  ];
+  document.getElementById('stats').innerHTML = cards.map(c =>
+    `<div class="stat-card">
+      <div class="stat-value ${c.cls}">${c.value}</div>
+      <div class="stat-label">${c.label}</div>
+    </div>`
+  ).join('');
+}
+
+function renderDAG() {
+  const container = document.getElementById('dag');
+  const spans = TRACE.spans || [];
+  const graph = TRACE.dependency_graph;
+  if (!spans.length) { container.style.display = 'none'; return; }
+
+  // Build tiers via topological sort
+  const tiers = [];
+  const placed = new Set();
+  const deps = graph || {};
+
+  // Simple tier assignment: tier 0 = no deps, tier N = max(dep tiers) + 1
+  const tierOf = {};
+  function getTier(id) {
+    if (tierOf[id] !== undefined) return tierOf[id];
+    const myDeps = deps[id] || [];
+    if (!myDeps.length) { tierOf[id] = 0; return 0; }
+    const t = Math.max(...myDeps.map(d => getTier(d))) + 1;
+    tierOf[id] = t;
+    return t;
+  }
+  spans.forEach(s => getTier(s.span_id));
+
+  const maxTier = Math.max(...Object.values(tierOf), 0);
+  for (let t = 0; t <= maxTier; t++) {
+    tiers.push(spans.filter(s => (tierOf[s.span_id] || 0) === t));
+  }
+
+  // Count tool calls per span for display
+  const spanToolCounts = {};
+  (TRACE.events || []).forEach(e => {
+    if (e.type === 'tool' && e.span_id) {
+      spanToolCounts[e.span_id] = (spanToolCounts[e.span_id] || 0) + 1;
+    }
+  });
+
+  let html = '<div class="dag-tiers">';
+  tiers.forEach((tier, i) => {
+    if (i > 0) html += '<div class="dag-arrow">&rarr;</div>';
+    html += '<div class="dag-tier">';
+    tier.forEach(s => {
+      const dur = s.duration_ms ? formatDuration(s.duration_ms) : '';
+      const tools = spanToolCounts[s.span_id] || 0;
+      const meta = [dur, tools ? `${tools} calls` : ''].filter(Boolean).join(' / ');
+      html += `<div class="dag-node ${s.status}" data-span-id="${s.span_id}" onclick="filterByDAGNode(this)">
+        <span class="dag-node-name">${escapeHtml(s.name)}</span>
+        ${meta ? `<span class="dag-node-meta">${meta}</span>` : ''}
+      </div>`;
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  container.innerHTML = '<div class="section-title">Pipeline <span style="font-size:11px;font-weight:400;color:var(--text3);text-transform:none;letter-spacing:0">(click to filter)</span></div>' + html;
+}
+
+function renderTimelineBar() {
+  const container = document.getElementById('timeline-bar');
+  const spans = TRACE.spans.filter(s => s.duration_ms && s.duration_ms > 0);
+  if (!spans.length) { container.style.display = 'none'; return; }
+
+  const total = spans.reduce((sum, s) => sum + s.duration_ms, 0);
+  const colors = {passed: 'passed', failed: 'failed', running: 'running', skipped: 'skipped'};
+
+  let barHtml = '<div class="timeline-bar">';
+  spans.forEach(s => {
+    const pct = Math.max((s.duration_ms / total) * 100, 0.5);
+    const label = pct > 8 ? s.name : '';
+    barHtml += `<div class="timeline-segment ${colors[s.status] || 'passed'}"
+      style="width:${pct}%" title="${s.name}: ${formatDuration(s.duration_ms)}">${label}</div>`;
+  });
+  barHtml += '</div>';
+
+  let legendHtml = '<div class="timeline-legend">';
+  spans.forEach(s => {
+    const cls = colors[s.status] || 'passed';
+    legendHtml += `<div class="legend-item">
+      <div class="legend-dot" style="background:var(--${s.status === 'passed' ? 'green' : s.status === 'failed' ? 'red' : s.status === 'running' ? 'blue' : 'text3'})"></div>
+      ${escapeHtml(s.name)} (${formatDuration(s.duration_ms)})
+    </div>`;
+  });
+  legendHtml += '</div>';
+
+  container.innerHTML = '<div class="section-title">Duration</div>' + barHtml + legendHtml;
+}
+
+function renderFilters() {
+  const container = document.getElementById('filters');
+  const spans = TRACE.spans || [];
+  const types = ['lifecycle', 'step', 'phase', 'reasoning', 'tool', 'error', 'verdict'];
+  const hasErrors = TRACE.events.some(e => e.type === 'error');
+
+  let html = `<select id="filter-span"><option value="">All spans</option>`;
+  spans.forEach(s => { html += `<option value="${s.span_id}">${escapeHtml(s.name)}</option>`; });
+  html += '</select>';
+
+  types.forEach(t => {
+    html += `<label><input type="checkbox" class="filter-type" value="${t}" checked> ${t}</label>`;
+  });
+
+  html += `<input type="text" id="filter-search" placeholder="Search events...">`;
+  if (hasErrors) html += `<button class="jump-btn" onclick="jumpToError()">Jump to errors</button>`;
+
+  container.innerHTML = html;
+
+  document.getElementById('filter-span').addEventListener('change', applyFilters);
+  document.getElementById('filter-search').addEventListener('input', applyFilters);
+  container.querySelectorAll('.filter-type').forEach(cb => cb.addEventListener('change', applyFilters));
+}
+
+function applyFilters() {
+  const spanFilter = document.getElementById('filter-span').value;
+  const search = document.getElementById('filter-search').value.toLowerCase();
+  const checkedTypes = new Set(
+    Array.from(document.querySelectorAll('.filter-type:checked')).map(cb => cb.value)
+  );
+
+  document.querySelectorAll('.event-item').forEach(el => {
+    const type = el.dataset.type;
+    const span = el.dataset.span || '';
+    const text = el.textContent.toLowerCase();
+    const show = checkedTypes.has(type) &&
+                 (!spanFilter || span === spanFilter) &&
+                 (!search || text.includes(search));
+    el.style.display = show ? '' : 'none';
+    // Also hide the gap before hidden items
+    const prevGap = el.previousElementSibling;
+    if (prevGap && prevGap.classList.contains('event-gap')) {
+      prevGap.style.display = show ? '' : 'none';
+    }
+  });
+}
+
+function filterByDAGNode(el) {
+  const spanId = el.dataset.spanId;
+  const select = document.getElementById('filter-span');
+
+  // Toggle: if already filtering this span, clear filter
+  if (select.value === spanId) {
+    select.value = '';
+    el.classList.remove('active');
+  } else {
+    select.value = spanId;
+    // Remove active from all nodes, add to this one
+    document.querySelectorAll('.dag-node.active').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+  }
+  applyFilters();
+}
+
+function jumpToError() {
+  const firstError = document.querySelector('.event-item[data-type="error"]');
+  if (firstError) {
+    firstError.scrollIntoView({behavior: 'smooth', block: 'center'});
+    const card = firstError.querySelector('.event-card');
+    if (card && !card.classList.contains('expanded')) card.classList.add('expanded');
+  }
+}
+
+function renderSingleEvent(evt, i, spanMap) {
+  let detailHtml = '';
+  if (evt.data && Object.keys(evt.data).length) {
+    detailHtml += '<h4>Event Data</h4><pre>' + escapeHtml(JSON.stringify(evt.data, null, 2)) + '</pre>';
+  }
+  const span = evt.span_id ? spanMap[evt.span_id] : null;
+  if (span) {
+    if (span.error) detailHtml += '<h4>Error</h4><pre>' + escapeHtml(span.error) + '</pre>';
+    if (span.tool_calls && span.tool_calls.length) {
+      const shownCalls = span.tool_calls.slice(0, 50);
+      detailHtml += `<h4>Tool Calls (${span.tool_calls.length})</h4><ul class="tool-call-list">`;
+      shownCalls.forEach(tc => {
+        detailHtml += `<li class="tool-call-item"><span class="tool-call-kind">${escapeHtml(tc.kind)}</span>${escapeHtml(tc.target)}</li>`;
+      });
+      if (span.tool_calls.length > 50) detailHtml += `<li class="tool-call-item" style="color:var(--text3)">... and ${span.tool_calls.length - 50} more</li>`;
+      detailHtml += '</ul>';
+    }
+    if (span.metadata && span.metadata.reasoning && span.metadata.reasoning.length) {
+      detailHtml += `<h4>Agent Reasoning (${span.metadata.reasoning.length} decisions)</h4><pre>` +
+        span.metadata.reasoning.map(r => escapeHtml(r)).join('\n\n---\n\n') + '</pre>';
+    }
+    if (span.metadata && span.metadata.checklist) {
+      detailHtml += '<h4>Checklist</h4><pre>' + escapeHtml(JSON.stringify(span.metadata.checklist, null, 2)) + '</pre>';
+    }
+  }
+  let previewHtml = '';
+  if (evt.type === 'reasoning' && evt.data && evt.data.text) {
+    previewHtml = `<div class="reasoning-text">${escapeHtml(evt.data.text)}</div>`;
+  } else if (evt.type === 'tool' && evt.data) {
+    previewHtml = `<div style="font-family:var(--mono);font-size:12px;color:var(--text2);margin-top:4px;">${escapeHtml(evt.data.tool || '')} ${escapeHtml(evt.data.target || '')}</div>`;
+  }
+  return `<div class="event-item" data-type="${evt.type}" data-span="${evt.span_id || ''}" data-index="${i}">
+    <div class="event-time">${formatTime(evt.timestamp)}</div>
+    <div class="event-dot ${evt.type}"></div>
+    <div class="event-card" onclick="this.classList.toggle('expanded')">
+      <div class="event-card-header">
+        <span class="event-type-badge ${evt.type}">${evt.type}</span>
+        <span class="event-name">${escapeHtml(evt.name)}</span>
+        ${evt.span_id ? `<span class="event-span">${escapeHtml(evt.span_id)}</span>` : ''}
+      </div>
+      ${previewHtml}
+      ${detailHtml ? `<div class="event-detail">${detailHtml}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+function renderEvents() {
+  const container = document.getElementById('events');
+  const events = TRACE.events || [];
+  if (!events.length) {
+    container.innerHTML = '<div class="empty-state">No events recorded</div>';
+    return;
+  }
+
+  const spanMap = {};
+  (TRACE.spans || []).forEach(s => { spanMap[s.span_id] = s; });
+
+  let html = '';
+  let i = 0;
+  while (i < events.length) {
+    const evt = events[i];
+
+    // Gap indicator
+    if (i > 0) {
+      const prev = new Date(events[i-1].timestamp);
+      const curr = new Date(evt.timestamp);
+      const gapMs = curr - prev;
+      if (gapMs > 1000) {
+        const isBottleneck = gapMs > 30000;
+        html += `<div class="event-gap ${isBottleneck ? 'bottleneck' : ''}">
+          <span class="event-gap-label">${formatDuration(gapMs)}</span>
+          <div class="event-gap-bar"></div>
+        </div>`;
+      }
+    }
+
+    // Group consecutive reasoning events
+    if (evt.type === 'reasoning') {
+      const groupStart = i;
+      const groupSpan = evt.span_id || '';
+      while (i < events.length && events[i].type === 'reasoning') i++;
+      const groupEnd = i;
+      const groupSize = groupEnd - groupStart;
+
+      if (groupSize >= 3) {
+        // Render as collapsible group
+        const firstText = events[groupStart].data?.text || '';
+        const groupId = 'rg-' + groupStart;
+        html += `<div class="reasoning-group" data-type="reasoning" data-span="${groupSpan}">
+          <div class="event-dot reasoning" style="top:10px"></div>
+          <div class="reasoning-group-header" onclick="this.classList.toggle('expanded')">
+            <span class="reasoning-group-count">${groupSize} reasoning</span>
+            <span class="reasoning-group-preview">${escapeHtml(firstText.substring(0, 120))}</span>
+            <span class="reasoning-group-toggle">&#9660;</span>
+          </div>
+          <div class="reasoning-group-items">`;
+        for (let j = groupStart; j < groupEnd; j++) {
+          html += renderSingleEvent(events[j], j, spanMap);
+        }
+        html += '</div></div>';
+      } else {
+        // Small group: render individually
+        for (let j = groupStart; j < groupEnd; j++) {
+          html += renderSingleEvent(events[j], j, spanMap);
+        }
+      }
+      continue;
+    }
+
+    html += renderSingleEvent(evt, i, spanMap);
+    i++;
+  }
+
+  container.innerHTML = '<div class="section-title">Event Timeline</div>' + html;
+}
+
+function renderArtifacts() {
+  const container = document.getElementById('artifacts');
+  const artifacts = TRACE.artifacts || [];
+  if (!artifacts.length) { container.style.display = 'none'; return; }
+
+  let html = '<div class="section-title">Artifacts</div>';
+  artifacts.forEach((a, i) => {
+    html += `<div class="artifact-item" onclick="this.classList.toggle('expanded')">
+      <div class="artifact-header">
+        <span class="artifact-name">${escapeHtml(a.name)}</span>
+        <span class="artifact-type">${escapeHtml(a.artifact_type)}</span>
+        ${a.span_id ? `<span class="artifact-span">${escapeHtml(a.span_id)}</span>` : ''}
+      </div>
+      ${a.content ? `<div class="artifact-content"><pre>${escapeHtml(a.content)}</pre></div>` : ''}
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+// Keyboard navigation
+let focusedIndex = -1;
+document.addEventListener('keydown', (e) => {
+  const items = Array.from(document.querySelectorAll('.event-item:not([style*="display: none"])'));
+  if (!items.length) return;
+
+  if (e.key === 'ArrowDown' || e.key === 'j') {
+    e.preventDefault();
+    focusedIndex = Math.min(focusedIndex + 1, items.length - 1);
+    items[focusedIndex].scrollIntoView({behavior: 'smooth', block: 'center'});
+    items[focusedIndex].querySelector('.event-card')?.classList.add('expanded');
+  } else if (e.key === 'ArrowUp' || e.key === 'k') {
+    e.preventDefault();
+    focusedIndex = Math.max(focusedIndex - 1, 0);
+    items[focusedIndex].scrollIntoView({behavior: 'smooth', block: 'center'});
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (focusedIndex >= 0 && focusedIndex < items.length) {
+      items[focusedIndex].querySelector('.event-card')?.classList.toggle('expanded');
+    }
+  }
+});
+
+// Render everything on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  renderHeader();
+  renderStats();
+  renderDAG();
+  renderTimelineBar();
+  renderFilters();
+  renderEvents();
+  renderArtifacts();
+});
+</script>
+
+<div class="header" id="header"></div>
+<div class="container">
+  <div class="stats-bar" id="stats"></div>
+  <div class="dag-container" id="dag"></div>
+  <div class="timeline-bar-container" id="timeline-bar"></div>
+  <div class="filter-bar" id="filters"></div>
+  <div class="event-timeline" id="events"></div>
+  <div class="artifacts-container" id="artifacts"></div>
+</div>
+<div class="kbd-hint"><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate &nbsp; <kbd>Enter</kbd> expand</div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{"v":1,"event":"pipeline_started","ts":"2026-03-31T14:00:00Z","session":"/tmp/sessions/executor/full_2026-03-31_140000Z","subsystem":"executor","pipeline":"full"}
+{"v":1,"event":"step_started","ts":"2026-03-31T14:00:00Z","session":"/tmp/sessions/executor/full_2026-03-31_140000Z","subsystem":"executor","step":"code"}
+{"v":1,"event":"step_passed","ts":"2026-03-31T14:35:00Z","session":"/tmp/sessions/executor/full_2026-03-31_140000Z","subsystem":"executor","step":"code"}
+{"v":1,"event":"step_started","ts":"2026-03-31T14:35:01Z","session":"/tmp/sessions/executor/full_2026-03-31_140000Z","subsystem":"executor","step":"lint"}
+{"v":1,"event":"step_started","ts":"2026-03-31T14:35:01Z","session":"/tmp/sessions/executor/full_2026-03-31_140000Z","subsystem":"executor","step":"test"}
+{"v":1,"event":"step_passed","ts":"2026-03-31T14:35:09Z","session":"/tmp/sessions/executor/full_2026-03-31_140000Z","subsystem":"executor","step":"lint"}
+{"v":1,"event":"step_failed","ts":"2026-03-31T14:35:45Z","session":"/tmp/sessions/executor/full_2026-03-31_140000Z","subsystem":"executor","step":"test","error":"AssertionError: expected 200 but got 404"}
+{"v":1,"event":"step_reset","ts":"2026-03-31T14:35:46Z","session":"/tmp/sessions/executor/full_2026-03-31_140000Z","subsystem":"executor","step":"test","retries":1}
+{"v":1,"event":"step_started","ts":"2026-03-31T14:35:46Z","session":"/tmp/sessions/executor/full_2026-03-31_140000Z","subsystem":"executor","step":"test"}
+{"v":1,"event":"step_failed","ts":"2026-03-31T14:36:30Z","session":"/tmp/sessions/executor/full_2026-03-31_140000Z","subsystem":"executor","step":"test","error":"AssertionError: expected 200 but got 404"}
+{"v":1,"event":"pipeline_failed","ts":"2026-03-31T14:36:30Z","session":"/tmp/sessions/executor/full_2026-03-31_140000Z","subsystem":"executor","pipeline":"full"}

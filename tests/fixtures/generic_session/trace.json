@@ -1,0 +1,65 @@
+{
+  "schema_version": "1.0",
+  "trace_id": "generic-test-001",
+  "framework": "custom-agent",
+  "session_type": "execution",
+  "title": "Fix the login bug",
+  "status": "completed",
+  "started_at": "2026-04-10T10:00:00Z",
+  "ended_at": "2026-04-10T10:15:00Z",
+  "metadata": {"env": "staging"},
+  "spans": [
+    {
+      "span_id": "investigate",
+      "name": "investigate",
+      "kind": "step",
+      "status": "passed",
+      "started_at": "2026-04-10T10:00:00Z",
+      "ended_at": "2026-04-10T10:05:00Z",
+      "tool_calls": [
+        {"kind": "file_read", "target": "src/auth/login.ts"},
+        {"kind": "file_read", "target": "src/auth/session.ts"}
+      ]
+    },
+    {
+      "span_id": "fix",
+      "name": "fix",
+      "kind": "step",
+      "status": "passed",
+      "started_at": "2026-04-10T10:05:00Z",
+      "ended_at": "2026-04-10T10:12:00Z",
+      "tool_calls": [
+        {"kind": "file_write", "target": "src/auth/login.ts"},
+        {"kind": "command", "target": "npm test"}
+      ]
+    },
+    {
+      "span_id": "verify",
+      "name": "verify",
+      "kind": "step",
+      "status": "passed",
+      "started_at": "2026-04-10T10:12:00Z",
+      "ended_at": "2026-04-10T10:15:00Z",
+      "tool_calls": [
+        {"kind": "command", "target": "npm run e2e"}
+      ]
+    }
+  ],
+  "events": [
+    {"timestamp": "2026-04-10T10:00:00Z", "type": "lifecycle", "name": "session_started"},
+    {"timestamp": "2026-04-10T10:00:00Z", "type": "reasoning", "name": "agent_thinking", "span_id": "investigate", "data": {"text": "Let me look at the login handler first"}},
+    {"timestamp": "2026-04-10T10:05:00Z", "type": "step", "name": "step_passed", "span_id": "investigate"},
+    {"timestamp": "2026-04-10T10:05:01Z", "type": "reasoning", "name": "agent_thinking", "span_id": "fix", "data": {"text": "Found the bug - session token not refreshed on redirect"}},
+    {"timestamp": "2026-04-10T10:12:00Z", "type": "step", "name": "step_passed", "span_id": "fix"},
+    {"timestamp": "2026-04-10T10:15:00Z", "type": "step", "name": "step_passed", "span_id": "verify"},
+    {"timestamp": "2026-04-10T10:15:00Z", "type": "lifecycle", "name": "session_completed"}
+  ],
+  "artifacts": [
+    {"name": "fix-summary.md", "artifact_type": "document", "content": "Fixed session token refresh on redirect"}
+  ],
+  "dependency_graph": {
+    "investigate": [],
+    "fix": ["investigate"],
+    "verify": ["fix"]
+  }
+}

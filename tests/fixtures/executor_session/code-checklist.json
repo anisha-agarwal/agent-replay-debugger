@@ -1,0 +1,9 @@
+{
+  "checklist": [
+    {"id": "1", "criteria": "Router endpoints updated", "status": "done", "evidence": "Modified router.ts"},
+    {"id": "2", "criteria": "Handler logic updated", "status": "done", "evidence": "Modified handlers.ts"},
+    {"id": "3", "criteria": "Build passes", "status": "done", "evidence": "npm run build succeeded"}
+  ],
+  "files_modified": ["/src/api/router.ts", "/src/api/handlers.ts"],
+  "summary": "API refactor complete"
+}

@@ -166,3 +166,67 @@ class TestCallAPI:
 
             result = _call_api(["test"], "fake-key")
         assert result == [{"category": "explaining", "flag": None}]
+
+    def test_malformed_array_extracts_objects(self):
+        malformed = '[{"category": "planning", "flag": null} some garbage {"category": "debugging", "flag": "tangent"}]'
+        mock_response_body = json.dumps({"content": [{"text": malformed}]}).encode()
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = mock_response_body
+        mock_resp.__enter__ = lambda s: s
+        mock_resp.__exit__ = MagicMock(return_value=False)
+
+        with patch("ard.analyze.urllib.request.urlopen", return_value=mock_resp):
+            from ard.analyze import _call_api
+
+            result = _call_api(["plan this", "wrong turn"], "fake-key")
+        assert len(result) == 2
+        assert result[0]["category"] == "planning"
+        assert result[1]["flag"] == "tangent"
+
+    def test_control_characters_stripped(self):
+        text_with_controls = '[{"category": "implementing",\x00 "flag": null}]'
+        mock_response_body = json.dumps({"content": [{"text": text_with_controls}]}).encode()
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = mock_response_body
+        mock_resp.__enter__ = lambda s: s
+        mock_resp.__exit__ = MagicMock(return_value=False)
+
+        with patch("ard.analyze.urllib.request.urlopen", return_value=mock_resp):
+            from ard.analyze import _call_api
+
+            result = _call_api(["build it"], "fake-key")
+        assert result[0]["category"] == "implementing"
+
+    def test_malformed_objects_skipped(self):
+        text = '[{"category": "planning", "flag": null}, {broken object}, {"category": "testing", "flag": null}]'
+        mock_response_body = json.dumps({"content": [{"text": text}]}).encode()
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = mock_response_body
+        mock_resp.__enter__ = lambda s: s
+        mock_resp.__exit__ = MagicMock(return_value=False)
+
+        with patch("ard.analyze.urllib.request.urlopen", return_value=mock_resp):
+            from ard.analyze import _call_api
+
+            result = _call_api(["a", "b", "c"], "fake-key")
+        assert len(result) == 2
+        assert result[0]["category"] == "planning"
+        assert result[1]["category"] == "testing"
+
+    def test_completely_broken_json_fallback(self):
+        mock_response_body = json.dumps({"content": [{"text": "[no valid objects here at all]"}]}).encode()
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = mock_response_body
+        mock_resp.__enter__ = lambda s: s
+        mock_resp.__exit__ = MagicMock(return_value=False)
+
+        with patch("ard.analyze.urllib.request.urlopen", return_value=mock_resp):
+            from ard.analyze import _call_api
+
+            result = _call_api(["test", "test2"], "fake-key")
+        assert len(result) == 2
+        assert result[0]["category"] == "explaining"

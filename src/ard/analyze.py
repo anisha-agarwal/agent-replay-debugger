@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import urllib.request
 from typing import Any
 
@@ -44,7 +45,9 @@ Optional flags (pick zero or one):
 Respond with a JSON array of objects, one per input block, in order:
 [{{"category": "investigating", "flag": null}}, {{"category": "debugging", "flag": "backtracking"}}, ...]
 
-Be concise. Only flag genuinely problematic behavior, not normal workflow."""
+Be concise. Only flag genuinely problematic behavior, not normal workflow.
+
+Return ONLY the JSON array. No markdown, no explanation, no code fences."""
 
 
 def _call_api(reasoning_texts: list[str], api_key: str) -> list[dict[str, Any]]:
@@ -83,7 +86,22 @@ def _call_api(reasoning_texts: list[str], api_key: str) -> list[dict[str, Any]]:
     end = text.rfind("]") + 1
     if start == -1 or end == 0:
         return [{"category": "explaining", "flag": None}] * len(reasoning_texts)
-    return json.loads(text[start:end])
+    json_str = text[start:end]
+    # Strip control characters that break JSON parsing
+    json_str = re.sub(r"[\x00-\x1f\x7f]", " ", json_str)
+    try:
+        return json.loads(json_str)
+    except json.JSONDecodeError:
+        # Try extracting individual objects if the array is malformed
+        results = []
+        for m in re.finditer(r"\{[^{}]+\}", json_str):
+            try:
+                results.append(json.loads(m.group()))
+            except json.JSONDecodeError:
+                continue
+        if results:
+            return results
+        return [{"category": "explaining", "flag": None}] * len(reasoning_texts)
 
 
 def annotate_trace(trace: Trace) -> Trace:

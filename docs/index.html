@@ -392,6 +392,31 @@
     padding: 2px 8px;
     border-radius: 4px;
   }
+  /* ── Category badges (from --analyze) ── */
+  .category-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .category-badge.planning { background: rgba(96,165,250,0.15); color: #60a5fa; }
+  .category-badge.investigating { background: rgba(192,132,252,0.15); color: #c084fc; }
+  .category-badge.implementing { background: rgba(74,222,128,0.15); color: #4ade80; }
+  .category-badge.debugging { background: rgba(248,113,113,0.15); color: #f87171; }
+  .category-badge.refactoring { background: rgba(251,191,36,0.15); color: #fbbf24; }
+  .category-badge.testing { background: rgba(45,212,191,0.15); color: #2dd4bf; }
+  .category-badge.explaining { background: rgba(148,163,184,0.15); color: #94a3b8; }
+  .flag-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(248,113,113,0.2);
+    color: #f87171;
+    border: 1px solid rgba(248,113,113,0.3);
+  }
   .reasoning-group-preview {
     font-size: 12px;
     color: var(--text2);
@@ -593,7 +618,7 @@ const TRACE = {
   "title": "list open issues for chore champions",
   "status": "completed",
   "started_at": "2026-04-10T19:58:15.204Z",
-  "ended_at": "2026-04-14T07:03:30.244Z",
+  "ended_at": "2026-04-19T04:07:11.702Z",
   "metadata": {
     "session_id": "5c56c4b1-0cb1-4cf7-9897-829b6d4e3a3f"
   },
@@ -2837,13 +2862,214 @@ const TRACE = {
       "kind": "agent",
       "status": "passed",
       "started_at": "2026-04-14T07:03:22.624Z",
-      "ended_at": "2026-04-14T07:03:30.244Z",
-      "duration_ms": 7620,
+      "ended_at": "2026-04-14T18:47:12.841Z",
+      "duration_ms": 42230217,
       "tool_calls": [
         {
           "kind": "command",
           "target": "npm run test:coverage 2>&1 | grep -E '^\\s+\\S+\\.tsx?\\s+\\|' | awk -F'|' '{gsub(/^ +| +$/, \"\", $1); gsub(/^ +| +$/, \"\", $3); if ($3+0 < 100 && $3 != \"\") print $1, \"branches:\", $3}' | head -10",
           "timestamp": "2026-04-14T07:03:30.244Z"
+        },
+        {
+          "kind": "command",
+          "target": "npm run test:coverage 2>&1 | grep -B1 -A1 '98.91' | head -10",
+          "timestamp": "2026-04-14T18:44:46.557Z"
+        },
+        {
+          "kind": "file_read",
+          "target": "/Users/dev/chore-champions/app/(dashboard)/quests/page.tsx",
+          "timestamp": "2026-04-14T18:44:59.889Z"
+        },
+        {
+          "kind": "file_write",
+          "target": "/Users/dev/chore-champions/__tests__/app/dashboard/quests.test.tsx",
+          "timestamp": "2026-04-14T18:45:14.812Z"
+        },
+        {
+          "kind": "command",
+          "target": "npm run test:coverage 2>&1 | tail -8",
+          "timestamp": "2026-04-14T18:45:22.289Z"
+        },
+        {
+          "kind": "command",
+          "target": "npm run build 2>&1 | tail -5 && npx playwright test quests 2>&1 | tail -5",
+          "timestamp": "2026-04-14T18:45:38.761Z"
+        },
+        {
+          "kind": "command",
+          "target": "git add \\\n  app/\\(dashboard\\)/quests/page.tsx \\\n  app/api/tasks/complete/ \\\n  __tests__/app/dashboard/quests.test.tsx \\\n  __tests__/api/tasks/complete.test.ts && \\\ngit diff --cached --stat",
+          "timestamp": "2026-04-14T18:46:26.007Z"
+        },
+        {
+          "kind": "command",
+          "target": "git commit -m \"$(cat <<'EOF'\nAdd task completion API route with parent push notification\n\nPR 4 of 5 for issue #47 (push notifications). When a child completes a\ntask, parents who have the task_complet",
+          "timestamp": "2026-04-14T18:46:41.601Z"
+        },
+        {
+          "kind": "command",
+          "target": "gh pr create --title \"feat: parent push on task completion (#47 PR 4/5)\" --body \"$(cat <<'EOF'\n## Summary\n\nPR 4 of 5 for #47. Parents now receive a push notification when their child completes a task ",
+          "timestamp": "2026-04-14T18:46:57.937Z"
+        },
+        {
+          "kind": "command",
+          "target": "{'taskId': '20', 'status': 'completed'}",
+          "timestamp": "2026-04-14T18:47:05.856Z"
+        }
+      ]
+    },
+    {
+      "span_id": "37-done-next",
+      "name": "done, next",
+      "kind": "agent",
+      "status": "passed",
+      "started_at": "2026-04-19T03:57:05.639Z",
+      "ended_at": "2026-04-19T04:07:11.472Z",
+      "duration_ms": 605833,
+      "tool_calls": [
+        {
+          "kind": "command",
+          "target": "gh pr view 86 --json state --jq '.state'",
+          "timestamp": "2026-04-19T03:57:13.523Z"
+        },
+        {
+          "kind": "command",
+          "target": "git checkout main && git pull && git checkout -b feature/issue-47-push-5-streak-milestone",
+          "timestamp": "2026-04-19T03:57:20.300Z"
+        },
+        {
+          "kind": "file_read",
+          "target": "claim_streak_milestone",
+          "timestamp": "2026-04-19T03:57:27.877Z"
+        },
+        {
+          "kind": "file_read",
+          "target": "/Users/dev/chore-champions/components/streaks/streak-tab.tsx",
+          "timestamp": "2026-04-19T03:57:32.531Z"
+        },
+        {
+          "kind": "command",
+          "target": "{'subject': 'Write streak-milestone trigger route + tests', 'description': 'POST /api/push/trigger/streak-milestone: sends push to child + opted-in pa",
+          "timestamp": "2026-04-19T03:57:40.006Z"
+        },
+        {
+          "kind": "command",
+          "target": "{'subject': 'Wire trigger from streak-tab + update tests + validate', 'description': 'Call the trigger route after successful claim. Update streak-tab",
+          "timestamp": "2026-04-19T03:57:44.276Z"
+        },
+        {
+          "kind": "command",
+          "target": "{'taskId': '21', 'status': 'in_progress'}",
+          "timestamp": "2026-04-19T03:57:47.643Z"
+        },
+        {
+          "kind": "file_read",
+          "target": "/Users/dev/chore-champions/lib/streaks.ts",
+          "timestamp": "2026-04-19T03:57:52.083Z"
+        },
+        {
+          "kind": "file_write",
+          "target": "/Users/dev/chore-champions/app/api/push/trigger/streak-milestone/route.ts",
+          "timestamp": "2026-04-19T03:58:05.192Z"
+        },
+        {
+          "kind": "file_write",
+          "target": "/Users/dev/chore-champions/__tests__/api/push/trigger-streak-milestone.test.ts",
+          "timestamp": "2026-04-19T03:58:31.868Z"
+        },
+        {
+          "kind": "command",
+          "target": "npx jest __tests__/api/push/trigger-streak-milestone.test.ts --coverage --collectCoverageFrom='app/api/push/trigger/streak-milestone/route.ts' 2>&1 | tail -15",
+          "timestamp": "2026-04-19T03:58:39.132Z"
+        },
+        {
+          "kind": "command",
+          "target": "npx jest __tests__/api/push/trigger-streak-milestone.test.ts 2>&1 | tail -25",
+          "timestamp": "2026-04-19T03:58:44.626Z"
+        },
+        {
+          "kind": "command",
+          "target": "NODE_OPTIONS= npx jest __tests__/api/push/trigger-streak-milestone.test.ts --coverage --collectCoverageFrom='app/api/push/trigger/streak-milestone/route.ts' 2>&1 | tail -15",
+          "timestamp": "2026-04-19T03:58:51.594Z"
+        },
+        {
+          "kind": "command",
+          "target": "{'taskId': '21', 'status': 'completed'}",
+          "timestamp": "2026-04-19T04:01:55.409Z"
+        },
+        {
+          "kind": "command",
+          "target": "{'taskId': '22', 'status': 'in_progress'}",
+          "timestamp": "2026-04-19T04:01:58.555Z"
+        },
+        {
+          "kind": "file_write",
+          "target": "/Users/dev/chore-champions/components/streaks/streak-tab.tsx",
+          "timestamp": "2026-04-19T04:02:06.659Z"
+        },
+        {
+          "kind": "file_read",
+          "target": "/Users/dev/chore-champions/__tests__/components/streaks/streak-tab.test.tsx",
+          "timestamp": "2026-04-19T04:02:11.206Z"
+        },
+        {
+          "kind": "file_read",
+          "target": "/Users/dev/chore-champions/__tests__/components/streaks/streak-tab.test.tsx",
+          "timestamp": "2026-04-19T04:02:15.671Z"
+        },
+        {
+          "kind": "file_write",
+          "target": "/Users/dev/chore-champions/__tests__/components/streaks/streak-tab.test.tsx",
+          "timestamp": "2026-04-19T04:02:21.930Z"
+        },
+        {
+          "kind": "file_read",
+          "target": "beforeEach|afterEach",
+          "timestamp": "2026-04-19T04:02:28.052Z"
+        },
+        {
+          "kind": "file_read",
+          "target": "/Users/dev/chore-champions/__tests__/components/streaks/streak-tab.test.tsx",
+          "timestamp": "2026-04-19T04:02:32.237Z"
+        },
+        {
+          "kind": "file_write",
+          "target": "/Users/dev/chore-champions/__tests__/components/streaks/streak-tab.test.tsx",
+          "timestamp": "2026-04-19T04:02:37.377Z"
+        },
+        {
+          "kind": "file_write",
+          "target": "/Users/dev/chore-champions/__tests__/components/streaks/streak-tab.test.tsx",
+          "timestamp": "2026-04-19T04:02:45.411Z"
+        },
+        {
+          "kind": "command",
+          "target": "NODE_OPTIONS= npx jest __tests__/components/streaks/streak-tab.test.tsx 2>&1 | tail -15",
+          "timestamp": "2026-04-19T04:02:52.091Z"
+        },
+        {
+          "kind": "command",
+          "target": "NODE_OPTIONS= npm run build 2>&1 | tail -5 && NODE_OPTIONS= npm run test:coverage 2>&1 | tail -8 && NODE_OPTIONS= npm run lint 2>&1 | tail -3",
+          "timestamp": "2026-04-19T04:03:09.056Z"
+        },
+        {
+          "kind": "command",
+          "target": "git add \\\n  app/api/push/trigger/streak-milestone/route.ts \\\n  __tests__/api/push/trigger-streak-milestone.test.ts \\\n  components/streaks/streak-tab.tsx \\\n  __tests__/components/streaks/streak-tab.tes",
+          "timestamp": "2026-04-19T04:06:36.122Z"
+        },
+        {
+          "kind": "command",
+          "target": "git commit -m \"$(cat <<'EOF'\nAdd streak milestone push notifications to child and parents\n\nPR 5 of 5 for issue #47 (push notifications). When a child claims a\nstreak milestone, they and their parents ",
+          "timestamp": "2026-04-19T04:06:50.346Z"
+        },
+        {
+          "kind": "command",
+          "target": "gh pr create --title \"feat: streak milestone push notifications (#47 PR 5/5)\" --body \"$(cat <<'EOF'\n## Summary\n\nPR 5 of 5 for #47. Final piece \u2014 when a child claims a streak milestone, they and their ",
+          "timestamp": "2026-04-19T04:07:06.241Z"
+        },
+        {
+          "kind": "command",
+          "target": "{'taskId': '22', 'status': 'completed'}",
+          "timestamp": "2026-04-19T04:07:11.472Z"
         }
       ]
     }
@@ -8289,6 +8515,512 @@ const TRACE = {
         "tool": "Bash",
         "target": "npm run test:coverage 2>&1 | grep -E '^\\s+\\S+\\.tsx?\\s+\\|' | awk -F'|' '{gsub(/^ +| +$/, \"\", $1); gsub(/^ +| +$/, \"\", $3); if ($3+0 < 100 && $3 != \"\") print $1, \"branches:\", $3}' | head -10"
       }
+    },
+    {
+      "timestamp": "2026-04-14T18:44:46.557Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "36-yes",
+      "data": {
+        "tool": "Bash",
+        "target": "npm run test:coverage 2>&1 | grep -B1 -A1 '98.91' | head -10"
+      }
+    },
+    {
+      "timestamp": "2026-04-14T18:44:59.889Z",
+      "type": "tool",
+      "name": "tool_Read",
+      "span_id": "36-yes",
+      "data": {
+        "tool": "Read",
+        "target": "/Users/dev/chore-champions/app/(dashboard)/quests/page.tsx"
+      }
+    },
+    {
+      "timestamp": "2026-04-14T18:45:14.812Z",
+      "type": "tool",
+      "name": "tool_Edit",
+      "span_id": "36-yes",
+      "data": {
+        "tool": "Edit",
+        "target": "/Users/dev/chore-champions/__tests__/app/dashboard/quests.test.tsx"
+      }
+    },
+    {
+      "timestamp": "2026-04-14T18:45:22.289Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "36-yes",
+      "data": {
+        "tool": "Bash",
+        "target": "npm run test:coverage 2>&1 | tail -8"
+      }
+    },
+    {
+      "timestamp": "2026-04-14T18:45:37.122Z",
+      "type": "reasoning",
+      "name": "agent_response",
+      "span_id": "36-yes",
+      "data": {
+        "text": "**129/129 suites, 1724/1724 tests, 100% coverage gate holds.** Now build check and E2E for regression:"
+      }
+    },
+    {
+      "timestamp": "2026-04-14T18:45:38.761Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "36-yes",
+      "data": {
+        "tool": "Bash",
+        "target": "npm run build 2>&1 | tail -5 && npx playwright test quests 2>&1 | tail -5"
+      }
+    },
+    {
+      "timestamp": "2026-04-14T18:46:23.708Z",
+      "type": "reasoning",
+      "name": "agent_response",
+      "span_id": "36-yes",
+      "data": {
+        "text": "Build green, 29/29 quests E2E tests pass \u2014 **no regressions in the refactored quest completion flow**."
+      }
+    },
+    {
+      "timestamp": "2026-04-14T18:46:26.007Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "36-yes",
+      "data": {
+        "tool": "Bash",
+        "target": "git add \\\n  app/\\(dashboard\\)/quests/page.tsx \\\n  app/api/tasks/complete/ \\\n  __tests__/app/dashboard/quests.test.tsx \\\n  __tests__/api/tasks/complete.test.ts && \\\ngit diff --cached --stat"
+      }
+    },
+    {
+      "timestamp": "2026-04-14T18:46:41.601Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "36-yes",
+      "data": {
+        "tool": "Bash",
+        "target": "git commit -m \"$(cat <<'EOF'\nAdd task completion API route with parent push notification\n\nPR 4 of 5 for issue #47 (push notifications). When a child completes a\ntask, parents who have the task_complet"
+      }
+    },
+    {
+      "timestamp": "2026-04-14T18:46:57.937Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "36-yes",
+      "data": {
+        "tool": "Bash",
+        "target": "gh pr create --title \"feat: parent push on task completion (#47 PR 4/5)\" --body \"$(cat <<'EOF'\n## Summary\n\nPR 4 of 5 for #47. Parents now receive a push notification when their child completes a task "
+      }
+    },
+    {
+      "timestamp": "2026-04-14T18:47:05.856Z",
+      "type": "tool",
+      "name": "tool_TaskUpdate",
+      "span_id": "36-yes",
+      "data": {
+        "tool": "TaskUpdate",
+        "target": "{'taskId': '20', 'status': 'completed'}"
+      }
+    },
+    {
+      "timestamp": "2026-04-14T18:47:12.841Z",
+      "type": "reasoning",
+      "name": "agent_response",
+      "span_id": "36-yes",
+      "data": {
+        "text": "PR 4 up: **https://github.com/user/chore-champions/pull/86**\n\n4 files, 655 additions. Task completion now fires a push to every parent in the family. 22 new unit tests, refactored `quests.test.tsx` (60/60), 29/29 existing quests E2E still pass, 100% coverage, build/lint green."
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:57:05.639Z",
+      "type": "reasoning",
+      "name": "user_message",
+      "span_id": "37-done-next",
+      "data": {
+        "text": "done, next"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:57:13.523Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Bash",
+        "target": "gh pr view 86 --json state --jq '.state'"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:57:20.300Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Bash",
+        "target": "git checkout main && git pull && git checkout -b feature/issue-47-push-5-streak-milestone"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:57:27.192Z",
+      "type": "reasoning",
+      "name": "agent_response",
+      "span_id": "37-done-next",
+      "data": {
+        "text": "PR 5 \u2014 the final one. Streak milestone \u2192 child + parent push. Let me find where `claim_streak_milestone` is called from."
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:57:27.877Z",
+      "type": "tool",
+      "name": "tool_Grep",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Grep",
+        "target": "claim_streak_milestone"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:57:32.531Z",
+      "type": "tool",
+      "name": "tool_Read",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Read",
+        "target": "/Users/dev/chore-champions/components/streaks/streak-tab.tsx"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:57:38.293Z",
+      "type": "reasoning",
+      "name": "agent_response",
+      "span_id": "37-done-next",
+      "data": {
+        "text": "Good \u2014 `handleClaimMilestone` calls the RPC, then shows a toast on success. I need to add a push trigger call after the successful claim. The plan says to create `POST /api/push/trigger/streak-milestone` and call it from here."
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:57:40.006Z",
+      "type": "tool",
+      "name": "tool_TaskCreate",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "TaskCreate",
+        "target": "{'subject': 'Write streak-milestone trigger route + tests', 'description': 'POST /api/push/trigger/streak-milestone: sends push to child + opted-in pa"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:57:44.276Z",
+      "type": "tool",
+      "name": "tool_TaskCreate",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "TaskCreate",
+        "target": "{'subject': 'Wire trigger from streak-tab + update tests + validate', 'description': 'Call the trigger route after successful claim. Update streak-tab"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:57:47.643Z",
+      "type": "tool",
+      "name": "tool_TaskUpdate",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "TaskUpdate",
+        "target": "{'taskId': '21', 'status': 'in_progress'}"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:57:52.083Z",
+      "type": "tool",
+      "name": "tool_Read",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Read",
+        "target": "/Users/dev/chore-champions/lib/streaks.ts"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:58:05.192Z",
+      "type": "tool",
+      "name": "tool_Write",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Write",
+        "target": "/Users/dev/chore-champions/app/api/push/trigger/streak-milestone/route.ts"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:58:31.868Z",
+      "type": "tool",
+      "name": "tool_Write",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Write",
+        "target": "/Users/dev/chore-champions/__tests__/api/push/trigger-streak-milestone.test.ts"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:58:39.132Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Bash",
+        "target": "npx jest __tests__/api/push/trigger-streak-milestone.test.ts --coverage --collectCoverageFrom='app/api/push/trigger/streak-milestone/route.ts' 2>&1 | tail -15"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:58:44.626Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Bash",
+        "target": "npx jest __tests__/api/push/trigger-streak-milestone.test.ts 2>&1 | tail -25"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T03:58:51.594Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Bash",
+        "target": "NODE_OPTIONS= npx jest __tests__/api/push/trigger-streak-milestone.test.ts --coverage --collectCoverageFrom='app/api/push/trigger/streak-milestone/route.ts' 2>&1 | tail -15"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:01:55.313Z",
+      "type": "reasoning",
+      "name": "agent_response",
+      "span_id": "37-done-next",
+      "data": {
+        "text": "12 tests, 100% coverage."
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:01:55.409Z",
+      "type": "tool",
+      "name": "tool_TaskUpdate",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "TaskUpdate",
+        "target": "{'taskId': '21', 'status': 'completed'}"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:01:58.555Z",
+      "type": "tool",
+      "name": "tool_TaskUpdate",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "TaskUpdate",
+        "target": "{'taskId': '22', 'status': 'in_progress'}"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:02:02.158Z",
+      "type": "reasoning",
+      "name": "agent_response",
+      "span_id": "37-done-next",
+      "data": {
+        "text": "Now wire the trigger from streak-tab after a successful claim:"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:02:06.659Z",
+      "type": "tool",
+      "name": "tool_Edit",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Edit",
+        "target": "/Users/dev/chore-champions/components/streaks/streak-tab.tsx"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:02:10.769Z",
+      "type": "reasoning",
+      "name": "agent_response",
+      "span_id": "37-done-next",
+      "data": {
+        "text": "Now update the streak-tab test to verify the trigger call:"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:02:11.206Z",
+      "type": "tool",
+      "name": "tool_Read",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Read",
+        "target": "/Users/dev/chore-champions/__tests__/components/streaks/streak-tab.test.tsx"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:02:15.671Z",
+      "type": "tool",
+      "name": "tool_Read",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Read",
+        "target": "/Users/dev/chore-champions/__tests__/components/streaks/streak-tab.test.tsx"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:02:19.631Z",
+      "type": "reasoning",
+      "name": "agent_response",
+      "span_id": "37-done-next",
+      "data": {
+        "text": "I need to add a fetch mock to the test file and verify the trigger call. Let me add the mock:"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:02:21.930Z",
+      "type": "tool",
+      "name": "tool_Edit",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Edit",
+        "target": "/Users/dev/chore-champions/__tests__/components/streaks/streak-tab.test.tsx"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:02:26.830Z",
+      "type": "reasoning",
+      "name": "agent_response",
+      "span_id": "37-done-next",
+      "data": {
+        "text": "Now add the fetch mock to beforeEach/afterEach:"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:02:28.052Z",
+      "type": "tool",
+      "name": "tool_Grep",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Grep",
+        "target": "beforeEach|afterEach"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:02:32.237Z",
+      "type": "tool",
+      "name": "tool_Read",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Read",
+        "target": "/Users/dev/chore-champions/__tests__/components/streaks/streak-tab.test.tsx"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:02:37.377Z",
+      "type": "tool",
+      "name": "tool_Edit",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Edit",
+        "target": "/Users/dev/chore-champions/__tests__/components/streaks/streak-tab.test.tsx"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:02:41.221Z",
+      "type": "reasoning",
+      "name": "agent_response",
+      "span_id": "37-done-next",
+      "data": {
+        "text": "Now add assertion for the trigger call after the successful claim test:"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:02:45.411Z",
+      "type": "tool",
+      "name": "tool_Edit",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Edit",
+        "target": "/Users/dev/chore-champions/__tests__/components/streaks/streak-tab.test.tsx"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:02:52.091Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Bash",
+        "target": "NODE_OPTIONS= npx jest __tests__/components/streaks/streak-tab.test.tsx 2>&1 | tail -15"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:03:07.647Z",
+      "type": "reasoning",
+      "name": "agent_response",
+      "span_id": "37-done-next",
+      "data": {
+        "text": "22/22 green. Now full validation:"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:03:09.056Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Bash",
+        "target": "NODE_OPTIONS= npm run build 2>&1 | tail -5 && NODE_OPTIONS= npm run test:coverage 2>&1 | tail -8 && NODE_OPTIONS= npm run lint 2>&1 | tail -3"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:06:34.059Z",
+      "type": "reasoning",
+      "name": "agent_response",
+      "span_id": "37-done-next",
+      "data": {
+        "text": "**130/130 suites, 1736/1736 tests, 100% coverage, build green, 0 lint errors.** Commit, push, PR."
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:06:36.122Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Bash",
+        "target": "git add \\\n  app/api/push/trigger/streak-milestone/route.ts \\\n  __tests__/api/push/trigger-streak-milestone.test.ts \\\n  components/streaks/streak-tab.tsx \\\n  __tests__/components/streaks/streak-tab.tes"
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:06:50.346Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Bash",
+        "target": "git commit -m \"$(cat <<'EOF'\nAdd streak milestone push notifications to child and parents\n\nPR 5 of 5 for issue #47 (push notifications). When a child claims a\nstreak milestone, they and their parents "
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:07:06.241Z",
+      "type": "tool",
+      "name": "tool_Bash",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "Bash",
+        "target": "gh pr create --title \"feat: streak milestone push notifications (#47 PR 5/5)\" --body \"$(cat <<'EOF'\n## Summary\n\nPR 5 of 5 for #47. Final piece \u2014 when a child claims a streak milestone, they and their "
+      }
+    },
+    {
+      "timestamp": "2026-04-19T04:07:11.472Z",
+      "type": "tool",
+      "name": "tool_TaskUpdate",
+      "span_id": "37-done-next",
+      "data": {
+        "tool": "TaskUpdate",
+        "target": "{'taskId': '22', 'status': 'completed'}"
+      }
     }
   ],
   "artifacts": [],
@@ -8384,18 +9116,21 @@ const TRACE = {
     "30-next": [
       "29-i-dont-think-the-token-updated"
     ],
-    "36-yes": []
+    "36-yes": [],
+    "37-done-next": [
+      "36-yes"
+    ]
   },
   "summary": {
-    "total_duration_ms": 299115040,
-    "span_count": 32,
-    "passed": 23,
+    "total_duration_ms": 720536498,
+    "span_count": 33,
+    "passed": 24,
     "failed": 0,
     "skipped": 0,
     "retries": 0,
-    "files_read": 87,
-    "files_written": 98,
-    "commands_run": 198,
+    "files_read": 95,
+    "files_written": 105,
+    "commands_run": 221,
     "errors": 0
   }
 };
@@ -8646,7 +9381,10 @@ function renderSingleEvent(evt, i, spanMap) {
   }
   let previewHtml = '';
   if (evt.type === 'reasoning' && evt.data && evt.data.text) {
-    previewHtml = `<div class="reasoning-text">${escapeHtml(evt.data.text)}</div>`;
+    let badges = '';
+    if (evt.data.category) badges += `<span class="category-badge ${evt.data.category}">${evt.data.category}</span> `;
+    if (evt.data.flag) badges += `<span class="flag-badge">${evt.data.flag}</span> `;
+    previewHtml = `${badges ? '<div style="margin-top:6px;display:flex;gap:6px;align-items:center">' + badges + '</div>' : ''}<div class="reasoning-text">${escapeHtml(evt.data.text)}</div>`;
   } else if (evt.type === 'tool' && evt.data) {
     previewHtml = `<div style="font-family:var(--mono);font-size:12px;color:var(--text2);margin-top:4px;">${escapeHtml(evt.data.tool || '')} ${escapeHtml(evt.data.target || '')}</div>`;
   }

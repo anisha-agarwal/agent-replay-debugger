@@ -1,5 +1,10 @@
 # agent-replay-debugger
 
+[![CI](https://github.com/anisha-agarwal/agent-replay-debugger/actions/workflows/ci.yml/badge.svg)](https://github.com/anisha-agarwal/agent-replay-debugger/actions/workflows/ci.yml)
+![Coverage](https://img.shields.io/badge/coverage-100%25-brightgreen)
+![Python](https://img.shields.io/badge/python-3.12+-blue)
+![Dependencies](https://img.shields.io/badge/dependencies-0-green)
+
 Framework-agnostic CLI that turns AI agent execution traces into interactive HTML timelines. See what your agent was thinking — every reasoning block, every tool call, every decision.
 
 **[Live demo](https://anisha-agarwal.github.io/agent-replay-debugger/)** · **[GitHub](https://github.com/anisha-agarwal/agent-replay-debugger)**

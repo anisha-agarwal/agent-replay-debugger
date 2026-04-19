@@ -29,4 +29,4 @@ jobs:
         run: uv run ruff format --check src/ tests/
 
       - name: Run tests
-        run: uv run pytest --cov=ard --cov-report=term-missing -v
+        run: uv run pytest --cov=ard --cov-report=term-missing --cov-fail-under=100 -v

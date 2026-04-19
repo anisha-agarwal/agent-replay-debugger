@@ -39,8 +39,9 @@ _PII_REPLACEMENTS = [
     (re.compile(r"/home/[a-zA-Z0-9._-]+"), "/home/dev"),
     # UUIDs → [uuid]
     (re.compile(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"), "[uuid]"),
-    # GitHub URLs with usernames → github.com/user/repo
+    # GitHub URLs with usernames (both web and API paths)
     (re.compile(r"github\.com/[a-zA-Z0-9_-]+/"), "github.com/user/"),
+    (re.compile(r"repos/[a-zA-Z0-9_-]+/"), "repos/user/"),
     # .claude project paths containing usernames
     (re.compile(r"\.claude/projects/-[A-Za-z]+-[a-zA-Z0-9._-]+-"), ".claude/projects/-dev-"),
     # Claude project slugs like "anisha-chore-champions"

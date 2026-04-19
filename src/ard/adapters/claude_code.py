@@ -48,7 +48,8 @@ def _extract_tool_target(name: str, tool_input: dict[str, Any]) -> str:
 
 def _make_span_id(index: int, text: str) -> str:
     """Generate a short span ID from user message."""
-    words = text.split()[:6]
+    clean = _redact(text)
+    words = clean.split()[:6]
     slug = "-".join(w.lower().strip(".,!?\"'()") for w in words if w.strip(".,!?\"'()"))
     slug = slug[:40] if slug else "task"
     return f"{index}-{slug}"

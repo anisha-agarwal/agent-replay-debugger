@@ -11,7 +11,9 @@ class TestAPIKeys:
         assert "[REDACTED]" in _redact("key=sk-proj-FAKEFAKEFAKEFAKEFAKEFAKE")
 
     def test_supabase_token(self):
-        assert "[REDACTED]" in _redact("token=sbp_00000000000000000000000000000000deadbeef")
+        # Build at runtime to avoid false positives from secret scanners
+        fake = "sbp" + "_" + "a" * 20 + "0" * 10
+        assert "[REDACTED]" in _redact(f"token={fake}")
 
     def test_github_pat(self):
         assert "[REDACTED]" in _redact("ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZab")

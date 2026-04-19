@@ -27,6 +27,13 @@ def cmd_trace(args: argparse.Namespace) -> int:
         return 1
 
     trace = adapter.load(session_dir)
+
+    if getattr(args, "analyze", False):
+        from ard.analyze import annotate_trace
+
+        print("Analyzing trace with LLM...", file=sys.stderr)
+        trace = annotate_trace(trace)
+
     indent = 2 if args.pretty else None
     print(json.dumps(trace.to_dict(), indent=indent))
     return 0
@@ -45,6 +52,13 @@ def cmd_view(args: argparse.Namespace) -> int:
         return 1
 
     trace = adapter.load(session_dir)
+
+    if getattr(args, "analyze", False):
+        from ard.analyze import annotate_trace
+
+        print("Analyzing trace with LLM...", file=sys.stderr)
+        trace = annotate_trace(trace)
+
     html = generate_html(trace)
 
     if args.output:
@@ -216,11 +230,21 @@ def main() -> None:
     p_trace = subparsers.add_parser("trace", help="Output universal trace JSON")
     p_trace.add_argument("session_dir", help="Path to session directory")
     p_trace.add_argument("--pretty", action="store_true", help="Pretty-print JSON")
+    p_trace.add_argument(
+        "--analyze",
+        action="store_true",
+        help="Annotate reasoning with LLM (needs ANTHROPIC_API_KEY)",
+    )
 
     # view
     p_view = subparsers.add_parser("view", help="Open interactive HTML trace viewer")
     p_view.add_argument("session_dir", help="Path to session directory")
     p_view.add_argument("--output", "-o", help="Write HTML to file instead of opening")
+    p_view.add_argument(
+        "--analyze",
+        action="store_true",
+        help="Annotate reasoning with LLM (needs ANTHROPIC_API_KEY)",
+    )
 
     # list
     subparsers.add_parser("list", help="List available sessions")

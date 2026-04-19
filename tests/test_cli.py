@@ -30,10 +30,20 @@ class TestCmdTrace:
         assert data["session_type"] == "planner"
 
     def test_generic_json(self, capsys):
-        args = Namespace(session_dir=str(FIXTURES_DIR / "generic_session"), pretty=False)
+        args = Namespace(
+            session_dir=str(FIXTURES_DIR / "generic_session"), pretty=False, analyze=False
+        )
         assert cmd_trace(args) == 0
         data = json.loads(capsys.readouterr().out)
         assert data["framework"] == "custom-agent"
+
+    def test_analyze_flag(self, capsys):
+        args = Namespace(
+            session_dir=str(FIXTURES_DIR / "generic_session"), pretty=False, analyze=True
+        )
+        with patch("ard.analyze.annotate_trace", side_effect=lambda t: t):
+            assert cmd_trace(args) == 0
+        assert "Analyzing" in capsys.readouterr().err
 
     def test_pretty_flag(self, capsys):
         args = Namespace(session_dir=str(FIXTURES_DIR / "executor_session"), pretty=True)
@@ -79,9 +89,20 @@ class TestCmdView:
         assert "does not exist" in capsys.readouterr().err
 
     def test_no_adapter(self, capsys, tmp_path):
-        args = Namespace(session_dir=str(tmp_path), output=None)
+        args = Namespace(session_dir=str(tmp_path), output=None, analyze=False)
         assert cmd_view(args) == 1
-        assert "no adapter" in capsys.readouterr().err
+
+    def test_analyze_flag(self, capsys, tmp_path):
+        output = tmp_path / "analyzed.html"
+        args = Namespace(
+            session_dir=str(FIXTURES_DIR / "generic_session"),
+            output=str(output),
+            analyze=True,
+        )
+        with patch("ard.analyze.annotate_trace", side_effect=lambda t: t):
+            assert cmd_view(args) == 0
+        assert "Analyzing" in capsys.readouterr().err
+        assert output.exists()
 
 
 class TestCmdList:

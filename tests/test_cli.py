@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from ard.cli import cmd_diff, cmd_list, cmd_pick, cmd_trace, cmd_view, main
+from ard.cli import cmd_diff, cmd_fork_run, cmd_list, cmd_pick, cmd_trace, cmd_view, main
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -323,6 +323,85 @@ class TestCmdPick:
             assert cmd_pick(args) == 0
 
 
+class TestCmdForkRun:
+    def test_nonexistent(self, capsys):
+        args = Namespace(
+            session="/nonexistent", prompt="test", cwd=None, max_budget=1.0, diff=False, output=None
+        )
+        assert cmd_fork_run(args) == 1
+        assert "does not exist" in capsys.readouterr().err
+
+    def test_error_handling(self, capsys, tmp_path):
+        f = tmp_path / "s.jsonl"
+        f.write_text('{"type":"user","sessionId":"x","message":{"role":"user","content":"hi"}}\n')
+        args = Namespace(
+            session=str(f), prompt="test", cwd=None, max_budget=1.0, diff=False, output=None
+        )
+        with patch("ard.fork_run.fork_and_run", side_effect=RuntimeError("claude failed")):
+            assert cmd_fork_run(args) == 1
+        assert "claude failed" in capsys.readouterr().err
+
+    def test_success_no_diff(self, capsys, tmp_path):
+        f = tmp_path / "s.jsonl"
+        f.write_text('{"type":"user","sessionId":"x","message":{"role":"user","content":"hi"}}\n')
+        args = Namespace(
+            session=str(f), prompt="test", cwd=None, max_budget=1.0, diff=False, output=None
+        )
+        with patch(
+            "ard.fork_run.fork_and_run",
+            return_value={
+                "original_session": str(f),
+                "forked_session": str(f),
+                "session_id": "x",
+            },
+        ):
+            assert cmd_fork_run(args) == 0
+
+    def test_with_diff(self, capsys, tmp_path):
+        f = tmp_path / "s.jsonl"
+        f.write_text('{"type":"user","sessionId":"x","message":{"role":"user","content":"hi"}}\n')
+        # Create a fake forked session that the adapter can detect
+        forked = tmp_path / "forked.jsonl"
+        forked.write_text(
+            '{"type":"user","sessionId":"y","message":{"role":"user","content":"fork"}}\n'
+        )
+        args = Namespace(
+            session=str(f), prompt="test", cwd=None, max_budget=1.0, diff=True, output=None
+        )
+        with patch(
+            "ard.fork_run.fork_and_run",
+            return_value={
+                "original_session": str(f),
+                "forked_session": str(forked),
+                "session_id": "x",
+            },
+        ):
+            with patch("ard.cli.webbrowser.open"):
+                assert cmd_fork_run(args) == 0
+
+    def test_with_output_file(self, tmp_path):
+        f = tmp_path / "s.jsonl"
+        f.write_text('{"type":"user","sessionId":"x","message":{"role":"user","content":"hi"}}\n')
+        forked = tmp_path / "forked.jsonl"
+        forked.write_text(
+            '{"type":"user","sessionId":"y","message":{"role":"user","content":"fork"}}\n'
+        )
+        output = tmp_path / "diff.html"
+        args = Namespace(
+            session=str(f), prompt="test", cwd=None, max_budget=1.0, diff=True, output=str(output)
+        )
+        with patch(
+            "ard.fork_run.fork_and_run",
+            return_value={
+                "original_session": str(f),
+                "forked_session": str(forked),
+                "session_id": "x",
+            },
+        ):
+            assert cmd_fork_run(args) == 0
+        assert output.exists()
+
+
 class TestCmdDiff:
     def test_json_output(self, capsys):
         a = str(FIXTURES_DIR / "executor_session")
@@ -435,3 +514,9 @@ class TestMain:
             with pytest.raises(SystemExit) as exc_info:
                 main()
             assert exc_info.value.code == 0
+
+    def test_fork_run_command(self, capsys):
+        with patch("sys.argv", ["ard", "fork-run", "/nonexistent", "-p", "test"]):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            assert exc_info.value.code == 1

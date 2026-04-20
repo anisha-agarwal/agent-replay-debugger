@@ -185,6 +185,55 @@ def cmd_diff(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_fork_run(args: argparse.Namespace) -> int:
+    """Fork a Claude Code session and re-execute with a different prompt."""
+    session_path = Path(args.session).resolve()
+    if not session_path.exists():
+        print(f"Error: {session_path} does not exist", file=sys.stderr)
+        return 1
+
+    from ard.fork_run import fork_and_run
+
+    try:
+        result = fork_and_run(
+            session_path,
+            new_prompt=args.prompt,
+            cwd=args.cwd,
+            max_budget=args.max_budget,
+        )
+    except (ValueError, RuntimeError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+    print(f"Original: {result['original_session']}")
+    print(f"Forked:   {result['forked_session']}")
+
+    if args.diff or args.output:
+        # Load both traces and show diff
+        adapter_a = detect_adapter(Path(result["original_session"]))
+        adapter_b = detect_adapter(Path(result["forked_session"]))
+        if adapter_a and adapter_b:
+            trace_a = adapter_a.load(Path(result["original_session"]))
+            trace_b = adapter_b.load(Path(result["forked_session"]))
+
+            from ard.diff import diff_traces
+            from ard.viewer import generate_diff_html
+
+            diff_result = diff_traces(trace_a, trace_b)
+            html = generate_diff_html(diff_result.to_dict())
+
+            if args.output:
+                Path(args.output).write_text(html)
+                print(f"Diff written to {args.output}")
+            else:
+                with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False) as f:
+                    f.write(html)
+                    print(f"Opening diff: {f.name}")
+                    webbrowser.open(f"file://{f.name}")
+
+    return 0
+
+
 CLAUDE_PROJECTS_DIR = Path.home() / ".claude" / "projects"
 
 
@@ -314,6 +363,20 @@ def main() -> None:
     p_diff.add_argument("--output", "-o", help="Write HTML to file instead of opening")
     p_diff.add_argument("--json", action="store_true", help="Output JSON instead of HTML")
 
+    # fork-run
+    p_forkrun = subparsers.add_parser(
+        "fork-run",
+        help="Fork a Claude Code session and re-execute with a different prompt",
+    )
+    p_forkrun.add_argument("session", help="Path to Claude Code session .jsonl")
+    p_forkrun.add_argument("--prompt", "-p", required=True, help="New prompt for the forked run")
+    p_forkrun.add_argument("--cwd", help="Working directory for the forked run")
+    p_forkrun.add_argument(
+        "--max-budget", type=float, default=1.0, help="Max USD to spend (default: $1.00)"
+    )
+    p_forkrun.add_argument("--diff", action="store_true", help="Show diff view after completion")
+    p_forkrun.add_argument("--output", "-o", help="Write diff HTML to file")
+
     args = parser.parse_args()
 
     if args.command == "trace":
@@ -326,6 +389,8 @@ def main() -> None:
         sys.exit(cmd_pick(args))
     elif args.command == "diff":
         sys.exit(cmd_diff(args))
+    elif args.command == "fork-run":
+        sys.exit(cmd_fork_run(args))
     else:
         parser.print_help()
         sys.exit(1)

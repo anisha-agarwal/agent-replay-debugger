@@ -137,6 +137,54 @@ def cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_diff(args: argparse.Namespace) -> int:
+    """Compare two traces and show a diff view."""
+    path_a = Path(args.session_a).resolve()
+    path_b = Path(args.session_b).resolve()
+
+    for label, path in [("A", path_a), ("B", path_b)]:
+        if not path.exists():
+            print(f"Error: {label} ({path}) does not exist", file=sys.stderr)
+            return 1
+
+    adapter_a = detect_adapter(path_a)
+    adapter_b = detect_adapter(path_b)
+    if not adapter_a:
+        print(f"Error: no adapter found for {path_a}", file=sys.stderr)
+        return 1
+    if not adapter_b:
+        print(f"Error: no adapter found for {path_b}", file=sys.stderr)
+        return 1
+
+    trace_a = adapter_a.load(path_a)
+    trace_b = adapter_b.load(path_b)
+
+    from ard.diff import diff_traces
+
+    result = diff_traces(trace_a, trace_b)
+
+    if getattr(args, "json", False):
+        print(json.dumps(result.to_dict(), indent=2))
+        return 0
+
+    from ard.viewer import generate_diff_html
+
+    html = generate_diff_html(result.to_dict())
+
+    if args.output:
+        output_path = Path(args.output)
+        output_path.write_text(html)
+        print(f"Written to {output_path}")
+    else:
+        with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False) as f:
+            f.write(html)
+            tmp_path = f.name
+        print(f"Opening {tmp_path}")
+        webbrowser.open(f"file://{tmp_path}")
+
+    return 0
+
+
 CLAUDE_PROJECTS_DIR = Path.home() / ".claude" / "projects"
 
 
@@ -257,6 +305,15 @@ def main() -> None:
         "-n", type=int, default=1, help="Pick nth most recent (default: 1 = latest)"
     )
 
+    # diff
+    p_diff = subparsers.add_parser(
+        "diff", help="Compare two traces of the same task (e.g. before/after, different models)"
+    )
+    p_diff.add_argument("session_a", help="First session path")
+    p_diff.add_argument("session_b", help="Second session path")
+    p_diff.add_argument("--output", "-o", help="Write HTML to file instead of opening")
+    p_diff.add_argument("--json", action="store_true", help="Output JSON instead of HTML")
+
     args = parser.parse_args()
 
     if args.command == "trace":
@@ -267,6 +324,8 @@ def main() -> None:
         sys.exit(cmd_list(args))
     elif args.command == "pick":
         sys.exit(cmd_pick(args))
+    elif args.command == "diff":
+        sys.exit(cmd_diff(args))
     else:
         parser.print_help()
         sys.exit(1)

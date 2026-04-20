@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from ard.cli import cmd_list, cmd_pick, cmd_trace, cmd_view, main
+from ard.cli import cmd_diff, cmd_list, cmd_pick, cmd_trace, cmd_view, main
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -323,6 +323,74 @@ class TestCmdPick:
             assert cmd_pick(args) == 0
 
 
+class TestCmdDiff:
+    def test_json_output(self, capsys):
+        a = str(FIXTURES_DIR / "executor_session")
+        b = str(FIXTURES_DIR / "planner_session")
+        args = Namespace(session_a=a, session_b=b, output=None, json=True)
+        assert cmd_diff(args) == 0
+        data = json.loads(capsys.readouterr().out)
+        assert "span_diffs" in data
+
+    def test_html_output(self, tmp_path):
+        a = str(FIXTURES_DIR / "executor_session")
+        b = str(FIXTURES_DIR / "planner_session")
+        output = tmp_path / "diff.html"
+        args = Namespace(session_a=a, session_b=b, output=str(output), json=False)
+        assert cmd_diff(args) == 0
+        html = output.read_text()
+        assert "Trace Diff" in html
+
+    def test_opens_browser(self, capsys):
+        a = str(FIXTURES_DIR / "executor_session")
+        b = str(FIXTURES_DIR / "planner_session")
+        args = Namespace(session_a=a, session_b=b, output=None, json=False)
+        with patch("ard.cli.webbrowser.open") as mock_open:
+            assert cmd_diff(args) == 0
+            mock_open.assert_called_once()
+        assert "Opening" in capsys.readouterr().out
+
+    def test_nonexistent_a(self, capsys):
+        args = Namespace(
+            session_a="/nonexistent",
+            session_b=str(FIXTURES_DIR / "executor_session"),
+            output=None,
+            json=False,
+        )
+        assert cmd_diff(args) == 1
+        assert "does not exist" in capsys.readouterr().err
+
+    def test_nonexistent_b(self, capsys):
+        args = Namespace(
+            session_a=str(FIXTURES_DIR / "executor_session"),
+            session_b="/nonexistent",
+            output=None,
+            json=False,
+        )
+        assert cmd_diff(args) == 1
+        assert "does not exist" in capsys.readouterr().err
+
+    def test_no_adapter_a(self, capsys, tmp_path):
+        args = Namespace(
+            session_a=str(tmp_path),
+            session_b=str(FIXTURES_DIR / "executor_session"),
+            output=None,
+            json=False,
+        )
+        assert cmd_diff(args) == 1
+        assert "no adapter" in capsys.readouterr().err
+
+    def test_no_adapter_b(self, capsys, tmp_path):
+        args = Namespace(
+            session_a=str(FIXTURES_DIR / "executor_session"),
+            session_b=str(tmp_path),
+            output=None,
+            json=False,
+        )
+        assert cmd_diff(args) == 1
+        assert "no adapter" in capsys.readouterr().err
+
+
 class TestMain:
     def test_no_args(self):
         with patch("sys.argv", ["ard"]):
@@ -359,3 +427,11 @@ class TestMain:
                 with pytest.raises(SystemExit) as exc_info:
                     main()
                 assert exc_info.value.code == 1
+
+    def test_diff_command(self, capsys):
+        a = str(FIXTURES_DIR / "executor_session")
+        b = str(FIXTURES_DIR / "planner_session")
+        with patch("sys.argv", ["ard", "diff", a, b, "--json"]):
+            with pytest.raises(SystemExit) as exc_info:
+                main()
+            assert exc_info.value.code == 0

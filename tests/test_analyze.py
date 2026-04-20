@@ -217,7 +217,9 @@ class TestCallAPI:
         assert result[1]["category"] == "testing"
 
     def test_completely_broken_json_fallback(self):
-        mock_response_body = json.dumps({"content": [{"text": "[no valid objects here at all]"}]}).encode()
+        mock_response_body = json.dumps(
+            {"content": [{"text": "[no valid objects here at all]"}]}
+        ).encode()
 
         mock_resp = MagicMock()
         mock_resp.read.return_value = mock_response_body

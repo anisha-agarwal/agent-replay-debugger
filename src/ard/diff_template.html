@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARD — Trace Diff</title>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: rgba(255,255,255,0.06);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --accent: #818cf8;
+    --green: #4ade80;
+    --green-bg: rgba(74,222,128,0.1);
+    --red: #f87171;
+    --red-bg: rgba(248,113,113,0.1);
+    --amber: #fbbf24;
+    --blue: #60a5fa;
+    --mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Menlo', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 32px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .header-title { font-size: 20px; font-weight: 700; }
+  .header-vs { color: var(--text3); font-size: 14px; }
+  .header-name { font-family: var(--mono); font-size: 13px; color: var(--text2); }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 32px; }
+
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px; margin-bottom: 24px;
+  }
+  .summary-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; text-align: center;
+  }
+  .summary-val { font-size: 24px; font-weight: 800; color: var(--accent); }
+  .summary-val.green { color: var(--green); }
+  .summary-val.red { color: var(--red); }
+  .summary-val.amber { color: var(--amber); }
+  .summary-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+  .section-title {
+    font-size: 14px; font-weight: 700; color: var(--text2);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; margin-top: 24px;
+  }
+
+  .diff-table {
+    width: 100%; border-collapse: collapse;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  }
+  .diff-table th {
+    text-align: left; font-size: 11px; color: var(--text3); text-transform: uppercase;
+    letter-spacing: 0.5px; padding: 10px 14px; border-bottom: 1px solid var(--border);
+  }
+  .diff-table td {
+    padding: 8px 14px; font-size: 13px; border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+  }
+  .diff-table tr:last-child td { border-bottom: none; }
+  .diff-table .name { color: var(--text); font-weight: 600; }
+  .diff-table .delta { font-weight: 600; }
+  .delta.faster { color: var(--green); }
+  .delta.slower { color: var(--red); }
+  .delta.neutral { color: var(--text3); }
+  .delta.new { color: var(--blue); }
+  .delta.removed { color: var(--text3); text-decoration: line-through; }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+  }
+  .badge.passed { background: var(--green-bg); color: var(--green); }
+  .badge.failed { background: var(--red-bg); color: var(--red); }
+  .badge.changed { background: rgba(251,191,36,0.15); color: var(--amber); }
+  .badge.only-a { background: rgba(248,113,113,0.1); color: var(--red); }
+  .badge.only-b { background: rgba(74,222,128,0.1); color: var(--green); }
+  .badge.both { background: rgba(129,140,248,0.1); color: var(--accent); }
+
+  .file-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .file-chip {
+    font-family: var(--mono); font-size: 11px; padding: 4px 10px;
+    border-radius: 4px; background: var(--surface2); color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .file-chip.only-a { border-color: rgba(248,113,113,0.3); color: var(--red); }
+  .file-chip.only-b { border-color: rgba(74,222,128,0.3); color: var(--green); }
+</style>
+</head>
+<body>
+<script>
+const DIFF = __DIFF_DATA_PLACEHOLDER__;
+
+function fmt(ms) {
+  if (ms == null) return '-';
+  const abs = Math.abs(ms);
+  if (abs < 1000) return ms + 'ms';
+  const s = abs / 1000;
+  if (s < 60) return (ms < 0 ? '-' : '') + s.toFixed(1) + 's';
+  const m = Math.floor(s / 60);
+  return (ms < 0 ? '-' : '') + m + 'm ' + Math.floor(s % 60) + 's';
+}
+
+function esc(s) { return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }
+
+document.addEventListener('DOMContentLoaded', () => {
+  const d = DIFF;
+
+  // Header
+  document.getElementById('header').innerHTML = `
+    <div class="header-title">Trace Diff</div>
+    <div class="header-name">${esc(d.title_a)}</div>
+    <div class="header-vs">vs</div>
+    <div class="header-name">${esc(d.title_b)}</div>
+  `;
+
+  // Summary
+  const durDelta = d.duration_delta_ms;
+  const durClass = durDelta == null ? '' : durDelta < 0 ? 'green' : durDelta > 0 ? 'red' : '';
+  const durSign = durDelta > 0 ? '+' : '';
+  const pct = d.duration_pct_change != null ? ` (${d.duration_pct_change > 0 ? '+' : ''}${d.duration_pct_change}%)` : '';
+
+  document.getElementById('summary').innerHTML = [
+    {v: fmt(d.duration_a), l: 'Duration A'},
+    {v: fmt(d.duration_b), l: 'Duration B'},
+    {v: durDelta != null ? durSign + fmt(durDelta) + pct : '-', l: 'Delta', c: durClass},
+    {v: d.faster_spans, l: 'Faster spans', c: 'green'},
+    {v: d.slower_spans, l: 'Slower spans', c: d.slower_spans ? 'red' : ''},
+    {v: d.new_spans, l: 'New spans', c: d.new_spans ? 'amber' : ''},
+    {v: d.status_changes, l: 'Status changes', c: d.status_changes ? 'red' : ''},
+  ].map(c => `<div class="summary-card"><div class="summary-val ${c.c||''}">${c.v}</div><div class="summary-lbl">${c.l}</div></div>`).join('');
+
+  // Span diffs table
+  let spanHtml = `<table class="diff-table"><tr><th>Span</th><th>Status</th><th>Duration A</th><th>Duration B</th><th>Delta</th><th>Tools</th></tr>`;
+  d.span_diffs.forEach(sd => {
+    let statusHtml = '';
+    if (sd.only_in === 'a') statusHtml = '<span class="badge only-a">removed</span>';
+    else if (sd.only_in === 'b') statusHtml = '<span class="badge only-b">new</span>';
+    else if (sd.status_a !== sd.status_b) statusHtml = `<span class="badge changed">${sd.status_a} → ${sd.status_b}</span>`;
+    else statusHtml = `<span class="badge passed">${sd.status_a || '-'}</span>`;
+
+    let deltaClass = 'neutral';
+    if (sd.duration_delta_ms != null) {
+      deltaClass = sd.duration_delta_ms < 0 ? 'faster' : sd.duration_delta_ms > 0 ? 'slower' : 'neutral';
+    }
+    const deltaText = sd.duration_delta_ms != null ? (sd.duration_delta_ms > 0 ? '+' : '') + fmt(sd.duration_delta_ms) : '-';
+    const pctText = sd.duration_pct_change != null ? ` (${sd.duration_pct_change > 0 ? '+' : ''}${sd.duration_pct_change}%)` : '';
+    const toolsDelta = sd.tools_delta ? (sd.tools_delta > 0 ? '+' : '') + sd.tools_delta : '-';
+
+    const nameClass = sd.only_in === 'a' ? 'delta removed' : sd.only_in === 'b' ? 'delta new' : 'name';
+
+    spanHtml += `<tr>
+      <td class="${nameClass}">${esc(sd.name)}</td>
+      <td>${statusHtml}</td>
+      <td>${sd.duration_a != null ? fmt(sd.duration_a) : '-'}</td>
+      <td>${sd.duration_b != null ? fmt(sd.duration_b) : '-'}</td>
+      <td class="delta ${deltaClass}">${deltaText}${pctText}</td>
+      <td>${sd.tools_a || '-'} → ${sd.tools_b || '-'} <span class="delta ${sd.tools_delta < 0 ? 'faster' : sd.tools_delta > 0 ? 'slower' : 'neutral'}">(${toolsDelta})</span></td>
+    </tr>`;
+  });
+  spanHtml += '</table>';
+  document.getElementById('spans').innerHTML = spanHtml;
+
+  // File diffs
+  const onlyA = d.file_diffs.filter(f => f.in_a && !f.in_b);
+  const onlyB = d.file_diffs.filter(f => !f.in_a && f.in_b);
+  const both = d.file_diffs.filter(f => f.in_a && f.in_b);
+  let fileHtml = `<div style="display:flex;gap:8px;margin-bottom:12px;">
+    <span class="badge both">${both.length} shared</span>
+    <span class="badge only-a">${onlyA.length} only in A</span>
+    <span class="badge only-b">${onlyB.length} only in B</span>
+  </div><div class="file-grid">`;
+  both.forEach(f => fileHtml += `<div class="file-chip">${esc(f.path)}</div>`);
+  onlyA.forEach(f => fileHtml += `<div class="file-chip only-a">${esc(f.path)}</div>`);
+  onlyB.forEach(f => fileHtml += `<div class="file-chip only-b">${esc(f.path)}</div>`);
+  fileHtml += '</div>';
+  document.getElementById('files').innerHTML = fileHtml;
+});
+</script>
+<div class="header" id="header"></div>
+<div class="container">
+  <div class="summary-grid" id="summary"></div>
+  <div class="section-title">Span Comparison</div>
+  <div id="spans"></div>
+  <div class="section-title">Files Touched</div>
+  <div id="files"></div>
+</div>
+</body>
+</html>
